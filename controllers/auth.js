@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-import  { User }  from "../models/user.js";
+import  { User }  from "../model/users.js";
 import HttpError from "../helpers/HttpError.js";
 import { ctrlWrapper } from "../helpers/ctrlWrapper.js";
 
@@ -32,23 +32,23 @@ const registration = async (req, res) => {
   const userlogin = async (req, res) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-  console.log(req.body);
+  
     if (!user) {
-      throw HttpError(401, "Email or password invalid");
+      throw HttpError(401, "Email or password is wrong");
     }
   
     const passwordCompare = await bcrypt.compare(password, user.password);
   
     if (!passwordCompare) {
-      throw HttpError(401, "Email or password invalid");
+      throw HttpError(401, "Email or password is wrong");
     }
   
     const payload = {
-      id: user._id,
+      id: user.id,
     };
   
-    const token = jwt.sign(payload, secretKey, { expiresIn: "12h" });
-    await User.findByIdAndUpdate(user._id, { token });
+    const token = jwt.sign(payload, secretKey, { expiresIn: "23h" });
+    await User.findByIdAndUpdate(user.id, { token });
   
     res.json({
       token: token,
@@ -69,10 +69,19 @@ const registration = async (req, res) => {
   };
   
   const userlogout = async (req, res) => {
-    const { _id } = req.user;
-    await User.findByIdAndUpdate(_id, { token: "" });
+    const owner = req.user.id;
+    await User.findByIdAndUpdate(owner, { token: "" });
+    res.status(204).json();
+  };
+
+  const changeSub = async (req, res) => {
+    const owner = req.user.id;
+    const { subscription } = req.body;
+    await User.findByIdAndUpdate(owner, {subscription});
   
-    res.status(204).json("");
+    res.status(202).json({
+      message: "Subscription updated"
+    });
   };
 
 
@@ -80,3 +89,4 @@ export const register = ctrlWrapper(registration);
 export const login = ctrlWrapper(userlogin);
 export const current = ctrlWrapper(userCurrent);
 export const logout = ctrlWrapper(userlogout);
+export const changeSubscription = ctrlWrapper(changeSub);

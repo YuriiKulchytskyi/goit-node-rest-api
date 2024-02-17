@@ -4,14 +4,17 @@ import { ctrlWrapper } from "../helpers/ctrlWrapper.js";
 import { Contact } from "../model/contact.js";
 
 const listContacts = async (req, res) => {
-  const { _id: owner } = req.user;
-  const { page = 1, limit = 20 } = req.query;
+  const owner = req.user.id;
+  const { page = 1, limit = 10, favorite } = req.query;
   const skip = (page - 1) * limit;
-  const result = await Contact.find({ owner }, null, {
-    skip,
-    limit,
-  }).populate("owner");
-  res.json(result);
+
+  const filterConditions = { owner };
+  if (favorite !== undefined) {
+    filterConditions.favorite = favorite;
+  }
+
+  const result = await Contact.find(filterConditions, "-createdAt -updatedAt").skip(skip).limit(limit);
+  res.status(200).json(result);
 };
 
 const getContactById = async (req, res) => {
@@ -20,7 +23,7 @@ const getContactById = async (req, res) => {
   if (!result) {
     throw HttpError(404, "Not found");
   }
-  res.json(result);
+  res.status(200).json(result);
 };
 
 const deleteContact = async (req, res) => {
@@ -29,14 +32,14 @@ const deleteContact = async (req, res) => {
   if (!result) {
     throw HttpError(404, "Not found");
   }
-
-  res.json({
-    message: "Delete success",
-  });
+  res.status(200).json(result);
 };
 
 const createContact = async (req, res) => {
-  const result = await Contact.create({...req.body, owner});
+  const owner = req.user.id;
+  const contactData = { ...req.body, owner };
+  const result = await Contact.create( contactData );
+
   res.status(201).json(result);
 };
 
@@ -44,8 +47,8 @@ const updateContactById = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
   if (Object.keys(data).length === 0) {
-     throw HttpError(400, "Body must have at least one field");
-  }
+    throw HttpError(400, "Body must have at least one field");
+}
   const result = await Contact.findByIdAndUpdate(id, data, {new: true});
   if (!result) {
     throw HttpError(404, "Not found");
