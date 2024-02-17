@@ -4,9 +4,10 @@ import {
     login,
     current,
     logout,
-    changeSubscription
+    changeSubscription,
+    updateAvatar
 } from '../controllers/auth.js';
-
+import { upload } from '../middlewares/upload.js';
 import { registerSchema, loginSchema, subscriptionShema } from '../model/users.js';
 import validateBody from "../helpers/validateBody.js";
 import { authenticate } from '../middlewares/authenticate.js';
@@ -22,5 +23,7 @@ router.get("/current", authenticate, current);
 router.post("/logout", authenticate, logout);
 
 router.patch("/", validateBody(subscriptionShema), authenticate, changeSubscription);
+
+router.patch("/avatars", authenticate, upload.single("avatar"), updateAvatar);
 
 export default router;
