@@ -16,29 +16,43 @@ const listContacts = async (req, res) => {
   const result = await Contact.find(filterConditions, "-createdAt -updatedAt").skip(skip).limit(limit);
   res.status(200).json(result);
 };
-
 const getContactById = async (req, res) => {
   const { id } = req.params;
-  const result = await Contact.findById(id);
-  if (!result) {
-    throw HttpError(404, "Not found");
+  const userId = req.user.id;
+  const contact = await Contact.findById(id);
+
+  if (!contact) {
+    throw HttpError(404, "Contact not found");
   }
-  res.status(200).json(result);
+
+  if (contact.owner !== userId) {
+    throw HttpError(403, "Access denied");
+  }
+
+  res.status(200).json(contact);
 };
 
 const deleteContact = async (req, res) => {
   const { id } = req.params;
-  const result = await Contact.findByIdAndDelete(id);
-  if (!result) {
-    throw HttpError(404, "Not found");
+  const userId = req.user.id;
+  const contact = await Contact.findById(id);
+
+  if (!contact) {
+    throw HttpError(404, "Contact not found");
   }
+
+  if (contact.owner !== userId) {
+    throw HttpError(403, "Access denied");
+  }
+
+  const result = await Contact.findByIdAndDelete(id);
   res.status(200).json(result);
 };
 
 const createContact = async (req, res) => {
   const owner = req.user.id;
   const contactData = { ...req.body, owner };
-  const result = await Contact.create( contactData );
+  const result = await Contact.create(contactData);
 
   res.status(201).json(result);
 };
@@ -46,23 +60,40 @@ const createContact = async (req, res) => {
 const updateContactById = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
+  const userId = req.user.id;
+  const contact = await Contact.findById(id);
+
+  if (!contact) {
+    throw HttpError(404, "Contact not found");
+  }
+
+  if (contact.owner !== userId) {
+    throw HttpError(403, "Access denied");
+  }
+
   if (Object.keys(data).length === 0) {
     throw HttpError(400, "Body must have at least one field");
-}
-  const result = await Contact.findByIdAndUpdate(id, data, {new: true});
-  if (!result) {
-    throw HttpError(404, "Not found");
   }
+
+  const result = await Contact.findByIdAndUpdate(id, data, { new: true });
   res.status(200).json(result);
 };
 
 const updateFavorite = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
-  const result = await Contact.findByIdAndUpdate(id, data, {new: true});
-  if (!result) {
-    throw HttpError(404, "Not found");
+  const userId = req.user.id; 
+  const contact = await Contact.findById(id);
+
+  if (!contact) {
+    throw HttpError(404, "Contact not found");
   }
+
+  if (contact.owner !== userId) {
+    throw HttpError(403, "Access denied");
+  }
+
+  const result = await Contact.findByIdAndUpdate(id, data, { new: true });
   res.status(200).json(result);
 };
 
