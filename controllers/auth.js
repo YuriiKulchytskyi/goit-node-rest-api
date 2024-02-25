@@ -98,23 +98,32 @@ const registration = async (req, res) => {
 
   const updAvatar = async (req, res) => {
     const owner = req.user.id;
+    
+    if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+    }
+
     const { path: tempUpload, originalname } = req.file;
     const filename = `${owner}_${originalname}`;
     const resultUpload = path.join(avatarsDir, filename);
-    await fs.rename(tempUpload, resultUpload);
-    const avatarURL = path.join("avatars", filename);
-  
-    Jimp.read(resultUpload, function (err, avatar) {
-      if (err) throw err;
-      avatar.resize(250, 250).write(resultUpload);
-    });
-  
-    await User.findByIdAndUpdate(owner, { avatarURL });
-  
-    res.json({
-      avatarURL,
-    });
-  };
+    
+    try {
+        await fs.rename(tempUpload, resultUpload);
+        const avatarURL = path.join("avatars", filename);
+    
+        Jimp.read(resultUpload, function (err, avatar) {
+            if (err) throw err;
+            avatar.resize(250, 250).write(resultUpload);
+        });
+        
+        await User.findByIdAndUpdate(owner, { avatarURL });
+        
+        res.json({ avatarURL });
+    } catch (error) {
+        console.error("Error uploading avatar:", error);
+        res.status(500).json({ message: "Avatar upload failed" });
+    }
+};
 
 
 export const register = ctrlWrapper(registration);
