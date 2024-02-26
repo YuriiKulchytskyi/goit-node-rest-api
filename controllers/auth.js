@@ -197,52 +197,58 @@ const updAvatar = async (req, res) => {
   }
 };
 
-const resendVerificationEmail = async (req, res) => {
-  const {
-    email
-  } = req.body;
-
-  if (!email) {
-    return res.status(400).json({
-      message: "missing required field email"
-    });
-  }
-
-
-  const user = await User.findOne({
-    email
-  });
-
-
-  if (!user) {
-    return res.status(404).json({
-      message: "User not found"
-    });
-  }
-  if (user.verify) {
-    return res.status(400).json({
-      message: "Verification has already been passed"
-    });
-  }
-
-  const verifyLink = `${req.protocol}://${req.get('host')}/users/verify/${user.verificationToken}`;
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Email Verification',
-    text: `Please click the following link to verify your email: ${verifyLink}`
-  };
+const verificationEmail = async (req, res) => {
+  const { verificationToken } = req.body;
 
   try {
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({
-      message: "Verification email has been sent"
-    });
+    const user = await User.findOne({ verificationToken });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    user.verified = true;
+    user.verificationToken = null; 
+    await user.save();
+    res.status(200).json({ message: "Email successfully verified" });
   } catch (error) {
-    console.error('Error sending email:', error);
-    res.status(500).json({
-      message: "Failed to send verification email"
-    });
+    console.error("Error verifying email:", error);
+    res.status(500).json({ message: "Failed to verify email" });
+  }
+};
+
+const resendEmail = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (user.verified) {
+      return res.status(400).json({ message: "User is already verified" });
+    }
+
+    const verificationToken = nanoid();
+    user.verificationToken = verificationToken;
+    await user.save();
+
+    const verifyLink = `${req.protocol}://${req.get(
+      "host"
+    )}/users/verify/${verificationToken}`;
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Email Verification",
+      text: `Please click the following link to verify your email: ${verifyLink}`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: "Verification email has been sent" });
+  } catch (error) {
+    console.error("Error resending verification email:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to resend verification email" });
   }
 };
 
@@ -252,4 +258,5 @@ export const current = ctrlWrapper(userCurrent);
 export const logout = ctrlWrapper(userlogout);
 export const changeSubscription = ctrlWrapper(changeSub);
 export const updateAvatar = ctrlWrapper(updAvatar);
-export const verifyEmail = ctrlWrapper(resendVerificationEmail);
+export const verifyEmail = ctrlWrapper(verificationEmail);
+export const resendVerificationEmail = ctrlWrapper(resendEmail);

@@ -5,10 +5,12 @@ import {
     current,
     logout,
     changeSubscription,
-    updateAvatar
+    updateAvatar,
+    verifyEmail,
+    resendVerificationEmail
 } from '../controllers/auth.js';
 import { upload } from '../middlewares/upload.js';
-import { registerSchema, loginSchema, subscriptionShema } from '../model/users.js';
+import { registerSchema, loginSchema, subscriptionSchema } from '../model/users.js';
 import validateBody from "../helpers/validateBody.js";
 import { authenticate } from '../middlewares/authenticate.js';
 
@@ -22,8 +24,12 @@ router.get("/current", authenticate, current);
 
 router.post("/logout", authenticate, logout);
 
-router.patch("/", validateBody(subscriptionShema), authenticate, changeSubscription);
+router.patch("/", validateBody(subscriptionSchema), authenticate, changeSubscription);
 
 router.patch("/avatars", authenticate, upload.single("avatar"), updateAvatar);
+
+router.post("/users/verify", authenticate, verifyEmail);
+
+router.post("/users/resend-verification-email", resendVerificationEmail);
 
 export default router;
