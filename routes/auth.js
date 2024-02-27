@@ -30,6 +30,6 @@ router.patch("/avatars", authenticate, upload.single("avatar"), updateAvatar);
 
 router.post("/users/verify", authenticate, verifyEmail);
 
-router.post("/users/resend-verification-email", resendVerificationEmail);
+router.get("/users/resend-verification-email", resendVerificationEmail);
 
 export default router;

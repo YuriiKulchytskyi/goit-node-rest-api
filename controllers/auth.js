@@ -198,33 +198,50 @@ const updAvatar = async (req, res) => {
 };
 
 const verificationEmail = async (req, res) => {
-  const { verificationToken } = req.body;
-
   try {
-    const user = await User.findOne({ verificationToken });
+    const {
+      verificationToken
+    } = req.params;
+    const user = await User.findOne({
+      verificationToken
+    });
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        error: 'Not Found'
+      });
     }
-    user.verified = true;
-    user.verificationToken = null; 
+    user.verificationToken = null;
+    user.verify = true;
     await user.save();
-    res.status(200).json({ message: "Email successfully verified" });
+    res.status(200).json({
+      message: 'Email verified successfully'
+    });
   } catch (error) {
-    console.error("Error verifying email:", error);
-    res.status(500).json({ message: "Failed to verify email" });
+    console.error('Error verifying email:', error);
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 };
 
 const resendEmail = async (req, res) => {
-  const { email } = req.body;
+  const {
+    email
+  } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email
+    });
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found"
+      });
     }
     if (user.verified) {
-      return res.status(400).json({ message: "User is already verified" });
+      return res.status(400).json({
+        message: "User is already verified"
+      });
     }
 
     const verificationToken = nanoid();
@@ -243,12 +260,16 @@ const resendEmail = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    res.status(200).json({ message: "Verification email has been sent" });
+    res.status(200).json({
+      message: "Verification email has been sent"
+    });
   } catch (error) {
     console.error("Error resending verification email:", error);
     res
       .status(500)
-      .json({ message: "Failed to resend verification email" });
+      .json({
+        message: "Failed to resend verification email"
+      });
   }
 };
 
